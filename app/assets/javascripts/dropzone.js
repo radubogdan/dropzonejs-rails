@@ -1105,6 +1105,19 @@
       }
       img.onload = (function(_this) {
         return function() {
+          var orientation = 0;
+          var flip = false;
+          if (typeof EXIF != 'undefined') EXIF.getData(img, function() {
+            switch (parseInt(EXIF.getTag(this, "Orientation"))) {
+              case 2: flip = true; break;
+              case 3: orientation = 180; break;
+              case 4: orientation = 180; flip = true; break;
+              case 5: orientation = 270; flip = true; break;
+              case 6: orientation = 270; break;
+              case 7: orientation = 90; flip = true; break;
+              case 8: orientation = 90; break;
+            }
+          });
           var canvas, ctx, resizeInfo, thumbnail, _ref, _ref1, _ref2, _ref3;
           file.width = img.width;
           file.height = img.height;
@@ -1119,7 +1132,7 @@
           ctx = canvas.getContext("2d");
           canvas.width = resizeInfo.trgWidth;
           canvas.height = resizeInfo.trgHeight;
-          drawImageIOSFix(ctx, img, (_ref = resizeInfo.srcX) != null ? _ref : 0, (_ref1 = resizeInfo.srcY) != null ? _ref1 : 0, resizeInfo.srcWidth, resizeInfo.srcHeight, (_ref2 = resizeInfo.trgX) != null ? _ref2 : 0, (_ref3 = resizeInfo.trgY) != null ? _ref3 : 0, resizeInfo.trgWidth, resizeInfo.trgHeight);
+          drawImageIOSFix(ctx, img, (_ref = resizeInfo.srcX) != null ? _ref : 0, (_ref1 = resizeInfo.srcY) != null ? _ref1 : 0, resizeInfo.srcWidth, resizeInfo.srcHeight, (_ref2 = resizeInfo.trgX) != null ? _ref2 : 0, (_ref3 = resizeInfo.trgY) != null ? _ref3 : 0, resizeInfo.trgWidth, resizeInfo.trgHeight, orientation, flip);
           thumbnail = canvas.toDataURL("image/png");
           _this.emit("thumbnail", file, thumbnail);
           if (callback != null) {
@@ -1691,9 +1704,15 @@
     }
   };
 
-  drawImageIOSFix = function(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
+  drawImageIOSFix = function(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, orientation, flip) {
     var vertSquashRatio;
     vertSquashRatio = detectVerticalSquash(img);
+    dh = dh / vertSquashRatio;
+    ctx.translate(dx+dw/2, dy+dh/2);
+    if (flip) ctx.scale(-1, 1);
+    ctx.rotate(-orientation*Math.PI/180);
+    dx = -dw/2;
+    dy = -dh/2;
     return ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh / vertSquashRatio);
   };
 
